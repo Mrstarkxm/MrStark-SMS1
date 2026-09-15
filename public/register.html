@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Register - MrStark Sms</title>
+  <link rel="stylesheet" href="style.css?v=v59-dark">
+  <link rel="icon" type="image/png" href="assets/mrstark-sms-logo.png?v=v58">
+<script src="js/theme.js"></script>
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo"><img src="assets/mrstark-sms-logo.png?v=v58" alt="MrStark Sms"></div>
+    <h1 class="auth-title">Create your account</h1>
+    <p class="auth-sub">Sign up as a client under a reseller</p>
+
+    <div class="auth-error" id="error"></div>
+
+    <form id="registerForm">
+      <div class="field">
+        <label for="adminId">Sign up under (Admin/Reseller)</label>
+        <select class="input" id="adminId" name="adminId" required>
+          <option value="">Loading...</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="username">Username</label>
+        <input class="input" id="username" name="username" autocomplete="username" required minlength="3" maxlength="20">
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input class="input" id="email" name="email" type="email" autocomplete="email" required>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input class="input" id="password" name="password" type="password" autocomplete="new-password" required minlength="8">
+      </div>
+      <button class="auth-btn" type="submit" id="submitBtn">Create Account</button>
+    </form>
+
+    <p class="auth-foot">Already have an account? <a href="/login">Log in</a></p>
+  </div>
+</div>
+<script src="register.js"></script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+LAMIX TEST PANEL SETUP
+
+The real Lamix Test Panel endpoint is an authenticated web-session endpoint:
+https://panel.lamix.org/api/test-numbers
+
+This local app cannot read your Lamix browser cookies automatically.
+Do NOT paste your session cookie or CSRF token into chat or commit them to the ZIP.
+
+PowerShell (local machine only):
+
+$env:LAMIX_SESSION_COOKIE='smspanel_lb=...; lamix_session=...'
+$env:LAMIX_CSRF_TOKEN='...'
+$env:LAMIX_BASE_URL='https://panel.lamix.org/api/v1'
+$env:LAMIX_DEFAULT_OWNER_ADMIN_ID='1'
+node server.js
+
+The cookie should be copied from Chrome DevTools > Network > the request to
+/api/test-numbers > Request Headers > Cookie.
+The CSRF token comes from the same request's x-csrf-token header.
+
+Security: if a session cookie/token was exposed anywhere, log out of Lamix and
+log back in to invalidate the old session before continuing.
+
+IMPORTANT: Recent Inbound never falls back to local MrStark CDR data. Capture the Lamix Test Panel's own Recent Inbound Fetch/XHR request and configure that endpoint before live inbound rows are shown.

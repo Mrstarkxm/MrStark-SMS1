@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MrStark Sms</title>
+  <link rel="stylesheet" href="style.css?v=v62-light">
+  <link rel="icon" type="image/png" href="assets/mrstark-sms-logo.png?v=v58">
+<script src="js/theme.js"></script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><img src="assets/mrstark-sms-logo.png?v=v58" alt="MrStark Sms logo"></div>
+    <button class="nav active" data-page="dashboard">Dashboard</button>
+    <button class="nav" data-page="managers" data-role="super_admin">Managers</button>
+    <button class="nav" data-page="admins" data-role="super_admin,manager">Agents</button>
+    <button class="nav" data-page="users" data-role="super_admin,manager">Users</button>
+    <button class="nav" data-page="clients" data-role="super_admin,manager,agent">Clients</button>
+    <button class="nav" data-page="ranges" data-role="super_admin,manager,agent">SMS Ranges</button>
+    <button class="nav" data-page="numbers" data-role="super_admin,manager,agent,client">My Numbers</button>
+    <button class="nav" data-page="bulk-add" data-role="super_admin,manager,agent">Bulk Add</button>
+    <button class="nav" data-page="cdr">CDR</button>
+    <button class="nav" data-page="rates" data-role="super_admin">Rates</button>
+    <button class="nav" data-page="carrier" data-role="super_admin">Carrier</button>
+    <button class="nav" data-page="test-panel" id="smsTestPanelNav">SMS Test Panel</button>
+    <button class="nav" data-page="payouts" data-role="super_admin,manager,agent">Payouts</button>
+    <button class="nav" data-page="settings">Settings</button>
+    <div class="side-bottom">MrStark Sms</div>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <div>
+        <div class="eyebrow"><span class="eyebrow-dot"></span> Operations workspace</div>
+        <h1 id="title">Dashboard</h1>
+        <p class="muted">SMS traffic management <span class="separator">•</span> carrier-connected</p>
+      </div>
+      <div class="topbar-user">
+        <div class="who">
+          <b id="whoName">...</b>
+          <span id="whoRole" class="badge">...</span>
+        </div>
+        <button class="btn" id="logoutBtn">Logout</button>
+      </div>
+    </header>
+
+    <section id="content"></section>
+  </main>
+</div>
+<script src="dashboard.js?v=v59"></script>
+</body>
+</html>

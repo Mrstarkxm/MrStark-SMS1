@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Login - MrStark Sms</title>
+  <link rel="stylesheet" href="style.css?v=v62-light">
+  <link rel="icon" type="image/png" href="assets/mrstark-sms-logo.png?v=v58">
+<script src="js/theme.js"></script>
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo"><img src="assets/mrstark-sms-logo.png?v=v58" alt="MrStark Sms"></div>
+    <h1 class="auth-title">Welcome back</h1>
+    <p class="auth-sub">Log in to your MrStark Sms account</p>
+
+    <div class="auth-error" id="error"></div>
+
+    <form id="loginForm">
+      <div class="field">
+        <label for="username">Username or Email</label>
+        <input class="input" id="username" name="username" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input class="input" id="password" name="password" type="password" autocomplete="current-password" required>
+      </div>
+      <button class="auth-btn" type="submit" id="submitBtn">Log In</button>
+    </form>
+
+    
+  </div>
+</div>
+<script src="login.js"></script>
+</body>
+</html>
