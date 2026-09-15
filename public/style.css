@@ -50,8 +50,8 @@
 
 /* =========================================================
    MrStark SMS Theme System
-   Default: DARK
-   Toggle: [data-theme="light"]
+   Default: Light
+   Toggle: [data-theme="dark"]
    Layout / components / functionality remain unchanged.
    ========================================================= */
 
@@ -79,7 +79,7 @@ html[data-theme="dark"] {
   --theme-shadow: 0 8px 28px rgba(0,0,0,.28);
 }
 
-/* Dark mode is the default; light mode remains available through the theme toggle. */
+/* Light mode is the default and is intentionally clean/white. */
 body {
   background: var(--theme-bg) !important;
   color: var(--theme-text);
@@ -571,58 +571,15 @@ html[data-theme="dark"] .badge.role-client { color: #fcd34d; }
 .modal h3 { letter-spacing: -.03em; }
 .auth-wrap {
   position: relative;
-  isolation: isolate;
-  overflow: hidden;
   background:
-    radial-gradient(circle at 12% 18%, rgba(0,183,255,.22), transparent 24rem),
-    radial-gradient(circle at 88% 20%, rgba(99,91,255,.20), transparent 25rem),
-    radial-gradient(circle at 52% 108%, rgba(0,120,255,.16), transparent 28rem),
-    linear-gradient(135deg, #030712 0%, #071226 48%, #09051b 100%);
+    radial-gradient(circle at 18% 20%, rgba(6,182,212,.16), transparent 22rem),
+    radial-gradient(circle at 84% 76%, rgba(139,92,246,.18), transparent 25rem),
+    var(--theme-bg);
 }
-.auth-wrap::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: -1;
-  background:
-    linear-gradient(rgba(80,150,220,.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(80,150,220,.045) 1px, transparent 1px);
-  background-size: 42px 42px;
-  mask-image: radial-gradient(circle at center, black 0%, rgba(0,0,0,.8) 55%, transparent 100%);
-}
-.auth-wrap::after {
-  content: "";
-  position: absolute;
-  width: 520px;
-  height: 520px;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  border: 1px solid rgba(30,160,255,.10);
-  box-shadow: 0 0 100px rgba(0,140,255,.10), inset 0 0 100px rgba(99,91,255,.07);
-  pointer-events: none;
-  z-index: -1;
-}
-html[data-theme="light"] .auth-wrap {
-  background:
-    radial-gradient(circle at 12% 18%, rgba(6,182,212,.14), transparent 24rem),
-    radial-gradient(circle at 88% 20%, rgba(99,91,255,.12), transparent 25rem),
-    linear-gradient(135deg, #eef8ff 0%, #f7f9ff 50%, #f2efff 100%);
-}
-html[data-theme="light"] .auth-wrap::before {
-  background:
-    linear-gradient(rgba(71,101,145,.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(71,101,145,.06) 1px, transparent 1px);
-}
-
 .auth-card {
   max-width: 430px;
   padding: 38px;
-  background: linear-gradient(180deg, rgba(14,23,43,.92), rgba(7,13,27,.94)) !important;
-  border-color: rgba(72,150,255,.45) !important;
-  box-shadow: 0 28px 80px rgba(0,0,0,.42), 0 0 55px rgba(0,140,255,.10), inset 0 1px 0 rgba(255,255,255,.04);
+  background: rgba(16,21,38,.88) !important;
   backdrop-filter: blur(18px);
 }
 html[data-theme="light"] .auth-card {
@@ -1058,10 +1015,4 @@ html[data-theme="dark"] input[type="datetime-local"] {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/* V58 — circular MrStark MRS logo everywhere */
-.brand img,
-.auth-logo img {
-  border-radius: 50%;
 }
