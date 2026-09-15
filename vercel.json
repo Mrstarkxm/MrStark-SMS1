@@ -1,17 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "api/index.js": {
+    "api/[...path].js": {
       "includeFiles": "{public/**,lib/**,data/**}"
     },
     "api/cron-sync.js": {
       "includeFiles": "{lib/**,data/**}"
     }
-  },
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/api/index"
-    }
-  ]
+  }
 }
