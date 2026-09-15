@@ -1,8 +1,8 @@
 {
   "name": "mrstark-sms",
-  "version": "0.1.0",
+  "version": "0.65.0",
   "private": true,
-  "description": "MrStark Sms - Phase 1: Auth + Super Admin / Admin / Client hierarchy",
+  "description": "MrStark Sms - V65 with persistent Supabase storage for Vercel",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

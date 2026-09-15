@@ -1,5 +1,6 @@
 // Optional Vercel Cron entrypoint. Protects Lamix sync from public access.
 const carrier = require('../lib/carrier');
+const db = require('../lib/db');
 
 module.exports = async (req, res) => {
   const auth = String(req.headers.authorization || '');
@@ -10,7 +11,9 @@ module.exports = async (req, res) => {
     return res.end(JSON.stringify({ error: 'Unauthorized' }));
   }
   try {
+    await db.initializePersistentDb();
     const result = await carrier.runSync();
+    await db.flushPersistence();
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');
     return res.end(JSON.stringify({ ok: true, result }));

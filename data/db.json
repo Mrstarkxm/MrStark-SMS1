@@ -17869,5 +17869,6 @@
   "rangeRequests": [],
   "nextRangeRequestId": 1,
   "payoutRequests": [],
-  "nextPayoutRequestId": 1
+  "nextPayoutRequestId": 1,
+  "userRangeRates": []
 }

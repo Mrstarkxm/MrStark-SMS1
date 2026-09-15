@@ -1,10 +1,17 @@
-MrStark SMS V62 — White/Light Default
-Based directly on the uploaded V59 ZIP.
-Only theme default behavior was changed: LIGHT/WHITE is now the default theme.
-Dark mode remains available via the existing theme toggle.
-A new theme storage key is used so an older saved dark preference does not force V59's dark default.
-Existing data/db.json is preserved.
+# MrStark SMS V65
 
-## Vercel deployment
+V65 is the Vercel persistent-storage build of MrStark SMS.
 
-See `VERCEL_DEPLOYMENT.md`. The project includes `api/index.js` and `vercel.json` for Vercel routing. Before production use, migrate `data/db.json` to persistent database storage because Vercel local function storage is not persistent.
+- Keeps the V63 Vercel catch-all routing fix.
+- Fixes the V64 `EROFS: read-only file system` login/session failure by persisting the JSON database state in Supabase.
+- No external npm package is required; Node's built-in `fetch` is used for Supabase REST.
+- Local development continues to use `data/db.json`.
+
+## Vercel setup
+
+1. Create the `mrstark_state` table using `SUPABASE_SETUP.md`.
+2. Add `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in Vercel Environment Variables.
+3. Keep the existing Lamix and `CRON_SECRET` variables.
+4. Redeploy.
+
+See `VERCEL_DEPLOYMENT.md` and `SUPABASE_SETUP.md`.

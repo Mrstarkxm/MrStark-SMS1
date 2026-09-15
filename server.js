@@ -14,6 +14,12 @@ const SESSION_COOKIE = 'sid';
 
 db.ensureSeed();
 
+// On Vercel, hydrate the in-memory JSON-compatible store from Supabase before
+// serving a request. Local development continues to use data/db.json directly.
+async function prepareRequest() {
+  await db.initializePersistentDb();
+}
+
 // ---------- small helpers ----------
 
 function parseCookies(req) {
@@ -1095,10 +1101,17 @@ const server = http.createServer(async (req, res) => {
   const pathname = decodeURIComponent(requestUrl.pathname);
 
   if (pathname.startsWith('/api/')) {
+    try {
+      await prepareRequest();
+    } catch (e) {
+      console.error(e);
+      return sendJson(res, 500, { error: 'Persistent database is not configured or reachable' });
+    }
     const match = matchRoute(req.method, pathname);
     if (!match) return sendJson(res, 404, { error: 'Not found' });
     try {
       await match.handler(req, res, match.params);
+      await db.flushPersistence();
     } catch (e) {
       console.error(e);
       if (!res.headersSent) sendJson(res, 500, { error: 'Internal server error' });
