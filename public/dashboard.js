@@ -120,12 +120,12 @@ async function carrierPage() {
 
   const state = data.configured ? 'Configured' : 'Not configured';
   const stateClass = data.configured ? 'active' : 'suspended';
-  const last = data.lastResult;
+  const last = data.lastResult || window.__mrstarkLastAutoScanResult || null;
   const lastText = last
     ? (last.skipped
-      ? `Sync in progress — ${last.reason || 'please wait'}`
-      : `${last.syncedAt ? new Date(last.syncedAt).toLocaleString() : 'Unknown time'} — ${Number(last.numbersImported ?? 0)} numbers imported, ${Number(last.cdrsImported ?? 0)} CDRs imported`)
-    : 'No sync has run yet';
+      ? `Automatic sync active — ${last.reason || 'previous scan still running'}`
+      : `${last.syncedAt ? new Date(last.syncedAt).toLocaleString() : (last.backgroundBrowserAt ? new Date(last.backgroundBrowserAt).toLocaleString() : 'Just now')} — ${Number(last.numbersImported ?? 0)} numbers imported, ${Number(last.cdrsImported ?? 0)} CDRs imported`)
+    : 'Automatic sync is starting…';
 
   content.innerHTML = `
     <div class="grid">
@@ -165,6 +165,22 @@ async function carrierPage() {
   const testBtn = document.getElementById('testLamixBtn');
   const syncBtn = document.getElementById('syncLamixBtn');
   const manualBtn = document.getElementById('manualImportBtn');
+  if (window.__mrstarkCarrierStatusTimer) clearInterval(window.__mrstarkCarrierStatusTimer);
+  window.__mrstarkCarrierStatusTimer = setInterval(async () => {
+    if (!document.getElementById('carrierResult')) return;
+    try {
+      const sr = await fetch('/api/carrier/status?_=' + Date.now(), {cache:'no-store'});
+      if (!sr.ok) return;
+      const sd = await sr.json();
+      const lr = sd.lastResult || window.__mrstarkLastAutoScanResult;
+      const cards = document.querySelectorAll('.grid > .card');
+      if (cards[2] && lr) {
+        const value = cards[2].querySelector('.value');
+        if (value) value.textContent = lr.skipped ? 'Automatic sync active' : `${lr.backgroundBrowserAt ? new Date(lr.backgroundBrowserAt).toLocaleString() : (lr.syncedAt ? new Date(lr.syncedAt).toLocaleString() : 'Just now')} — ${Number(lr.numbersImported ?? 0)} numbers imported, ${Number(lr.cdrsImported ?? 0)} CDRs imported`;
+      }
+    } catch (_) {}
+  }, 3000);
+
   manualBtn.onclick = async () => {
     const file = document.getElementById('manualNumbersFile').files[0];
     const name = document.getElementById('manualRangeName').value.trim();
@@ -1178,6 +1194,18 @@ function cdrDefaultWindow() {
   return {from:start,to:end};
 }
 function cdrRangeName(record, numberMap) { const n=numberMap.get(Number(record.numberId)); const name=record.rangeName || n?.rangeName || n?.range || ''; return String(name || '—').replace(/\bLX\b/gi,'MRS'); }
+function cdrBaseRow(record, numberMap) {
+  const rangeName = cdrRangeName(record, numberMap);
+  const number = record.msisdn || numberMap.get(Number(record.numberId))?.msisdn || '';
+  const cli = record.sender || record.cli || '';
+  const message = record.note || record.messageBody || '';
+  const client = cdrClientName(record, numberMap);
+  const currency = record.currency || 'USD';
+  const rate = Number(record.carrierRate ?? record.rate ?? 0);
+  const clientPayout = Number(record.clientPayout ?? record.clientRate ?? record.earning ?? 0);
+  const status = record.status === 'Delivered' ? 'Success' : (record.status || 'Success');
+  return [cdrFormatDate(record.createdAt), rangeName, number, cli, message, client, currency, `$${rate.toFixed(3)}`, `$${clientPayout.toFixed(3)}`, status];
+}
 function cdrClientName(record, numberMap) {
   const n=numberMap.get(Number(record.numberId));
   const client=record.clientUsername || record.assignedClientUsername || n?.assignedClientUsername || '';
@@ -1481,7 +1509,10 @@ async function init() {
   if (currentUser.role === 'super_admin') {
     const autoScan = async () => {
       try {
-        await fetch('/api/carrier/auto-sync', { method:'POST', cache:'no-store', keepalive:true });
+        const response = await fetch('/api/carrier/auto-sync', { method:'POST', cache:'no-store' });
+        if (response.ok) {
+          try { window.__mrstarkLastAutoScanResult = await response.json(); } catch (_) {}
+        }
       } catch (_) {}
     };
     window.__mrstarkAutoScanTimer && clearInterval(window.__mrstarkAutoScanTimer);
