@@ -1269,7 +1269,7 @@ async function cdrPage() {
     };
     function groupedRows(rows){
       const groups=getGroup();
-      if(!groups.length)return rows.map(r=>({values:baseRow(r),count:1,payout:Number(r.myPayout??r.carrierRate??0),client:Number(r.clientPayout??0)}));
+      if(!groups.length)return rows.map(r=>({values:cdrBaseRow(r,numberMap),count:1,payout:Number(r.myPayout??r.carrierRate??0),client:Number(r.clientPayout??0)}));
       const map=new Map();
       for(const r of rows){
         const key=groups.map(g=>groupFieldValue(r,g)).join('\u001f');
