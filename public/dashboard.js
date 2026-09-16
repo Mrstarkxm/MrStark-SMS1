@@ -130,7 +130,7 @@ async function carrierPage() {
   content.innerHTML = `
     <div class="grid">
       <div class="card"><div class="label">Lamix</div><div class="value"><span class="pill ${stateClass}">${state}</span></div><div class="up">${data.baseUrl}</div></div>
-      <div class="card"><div class="label">Polling</div><div class="value">${Math.round(Number(data.pollIntervalMs) / 1000)}s</div><div class="up">Automatic background sync</div></div>
+      <div class="card"><div class="label">Polling</div><div class="value">${Math.round(Number(data.pollIntervalMs) / 1000)}s</div><div class="up">Automatic background sync${data.vercel ? ' while Super Admin panel is open' : ''}</div></div>
       <div class="card"><div class="label">Last Sync</div><div class="value" style="font-size:18px">${lastText}</div><div class="up">Numbers + CDR feed</div></div>
     </div>
 
@@ -1216,7 +1216,7 @@ async function cdrPage() {
         <div><label>Filter Client</label><select class="input" id="cdrClient"><option value="">All clients</option>${clientNames.map(x=>`<option value="${cdrEscape(x)}">${cdrEscape(x)}</option>`).join('')}</select></div>
         <div><label>Search Number</label><input class="input" id="cdrNumber" placeholder="Search Number"></div><div><label>Search CLI</label><input class="input" id="cdrCli" placeholder="Search CLI"></div>
         <div class="cdr-filter-actions"><button class="btn" id="cdrExport">Export Report</button><button class="btn primary" id="cdrShowReport">Show Report</button></div>
-      </div><div class="cdr-groupby"><b>Group by</b>${['Hour','Day','Month','Range','Number','CLI','Client'].map(x=>`<label><input type="checkbox" class="cdrGroup" value="${x}"> ${x}</label>`).join('')}</div></div>
+      </div><div class="cdr-groupby"><b>Group by</b>${['Hour','Day','Month','Range','Number','CLI','Client','Currency','Status'].map(x=>`<label><input type="checkbox" class="cdrGroup" value="${x}"> ${x}</label>`).join('')}</div></div>
       <div class="cdr-report-head"><b>CDR REPORTS &amp; STATS</b></div>
       <div class="cdr-tools"><div><label>Search:</label> <input class="input cdr-global-search" id="cdrSearch" placeholder="🔍 by message text or range"></div><div class="cdr-show-count">Show Records: <select class="input" id="cdrPageSize"><option>25</option><option>50</option><option>100</option></select></div></div>
       <div class="cdr-actions"><button class="btn" id="cdrCopy">Copy</button><button class="btn" id="cdrTxt">TXT</button><button class="btn" id="cdrCsv">CSV</button><button class="btn" id="cdrExcel">Excel</button><button class="btn" id="cdrColumns">Show / hide columns</button></div>
@@ -1226,17 +1226,71 @@ async function cdrPage() {
     const columns=['Date','Range','Number','CLI','SMS','Client','Currency','Rate / SMS','Client Payout','Status'];
     if(currentUser.role==='client') hidden.add(7);
     const getGroup=()=>[...document.querySelectorAll('.cdrGroup:checked')].map(x=>x.value);
-    function baseRow(r){ const n=numberMap.get(Number(r.numberId)); const payout=Number(r.myPayout??r.carrierRate??0),cp=Number(r.clientPayout??0); const message=String(r.note??r.messageBody??r.content??''); return [cdrFormatDate(r.createdAt),cdrRangeName(r,numberMap),r.msisdn||n?.msisdn||'',r.sender||r.cli||'',message,cdrClientName(r,numberMap),r.currency||'USD',`$${payout.toFixed(3)}`,`$${cp.toFixed(3)}`,r.status==='Delivered'?'Success':(r.status||'Success')]; }
+    const groupFieldValue=(r,g)=>{
+      const d=new Date(r.createdAt);
+      if(g==='Hour') return d.toISOString().slice(0,13).replace('T',' ')+':00';
+      if(g==='Day') return d.toISOString().slice(0,10);
+      if(g==='Month') return d.toISOString().slice(0,7);
+      if(g==='Range') return cdrRangeName(r,numberMap);
+      if(g==='Number') return String(r.msisdn||numberMap.get(Number(r.numberId))?.msisdn||'');
+      if(g==='CLI') return String(r.sender||r.cli||'');
+      if(g==='Client') return cdrClientName(r,numberMap);
+      if(g==='Currency') return String(r.currency||'USD');
+      if(g==='Status') return r.status==='Delivered'?'Success':(r.status||'Success');
+      return '';
+    };
     function groupedRows(rows){
-      const groups=getGroup(); if(!groups.length)return rows.map(r=>({values:baseRow(r),count:1,payout:Number(r.myPayout??r.carrierRate??0),client:Number(r.clientPayout??0)}));
+      const groups=getGroup();
+      if(!groups.length)return rows.map(r=>({values:baseRow(r),count:1,payout:Number(r.myPayout??r.carrierRate??0),client:Number(r.clientPayout??0)}));
       const map=new Map();
-      const keyFor=(r)=>{const d=new Date(r.createdAt);return groups.map(g=>{if(g==='Hour')return d.toISOString().slice(0,13);if(g==='Day')return d.toISOString().slice(0,10);if(g==='Month')return d.toISOString().slice(0,7);if(g==='Range')return cdrRangeName(r,numberMap);if(g==='Number')return r.msisdn||'';if(g==='CLI')return r.sender||'';return cdrClientName(r,numberMap);}).join(' • ')};
-      for(const r of rows){const k=keyFor(r);const old=map.get(k);if(old){old.count++;old.payout+=Number(r.myPayout??r.carrierRate??0);old.client+=Number(r.clientPayout??0);}else{const vals=baseRow(r);vals[0]=k;vals[4]=`${1} SMS`;map.set(k,{values:vals,count:1,payout:Number(r.myPayout??r.carrierRate??0),client:Number(r.clientPayout??0)});}}
-      return [...map.values()].map(g=>{const v=[...g.values];v[4]=`${g.count} SMS`;v[7]=`$${g.payout.toFixed(3)}`;v[8]=`$${g.client.toFixed(3)}`;return g;});
+      for(const r of rows){
+        const key=groups.map(g=>groupFieldValue(r,g)).join('\u001f');
+        const payout=Number(r.myPayout??r.carrierRate??0), client=Number(r.clientPayout??0), currency=String(r.currency||'USD');
+        const old=map.get(key);
+        if(old){old.count++;old.payout+=payout;old.client+=client;old.currencies.add(currency);}
+        else map.set(key,{groupValues:groups.map(g=>groupFieldValue(r,g)),count:1,payout,client,currencies:new Set([currency])});
+      }
+      return [...map.values()].map(g=>{
+        const values=[...g.groupValues, g.currencies.size===1?[...g.currencies][0]:'Mixed', String(g.count), `$${g.payout.toFixed(3)}`, `$${g.client.toFixed(3)}`];
+        if(currentUser.role!=='client') values.push(`$${(g.payout-g.client).toFixed(3)}`);
+        return {values,count:g.count,payout:g.payout,client:g.client};
+      });
+    }
+    function groupedColumns(){
+      const groups=getGroup();
+      if(!groups.length)return columns;
+      const labels={Hour:'Hour',Day:'Day',Month:'Month',Range:'Range',Number:'Number',CLI:'CLI',Client:'Client',Currency:'Currency',Status:'Status'};
+      const out=groups.map(g=>labels[g]||g);
+      if(!groups.includes('Currency')) out.push('Currency');
+      out.push('SMS');
+      if(currentUser.role!=='client') out.push('My Payout');
+      out.push('Client Payout');
+      if(currentUser.role!=='client') out.push('Profit');
+      return out;
     }
     function applyFilters(){const from=new Date(document.getElementById('cdrFrom').value||'1970-01-01'),to=new Date(document.getElementById('cdrTo').value||'2999-12-31');const range=document.getElementById('cdrRange').value.toLowerCase(),client=document.getElementById('cdrClient').value.toLowerCase(),number=document.getElementById('cdrNumber').value.toLowerCase(),cli=document.getElementById('cdrCli').value.toLowerCase(),search=document.getElementById('cdrSearch').value.toLowerCase();filtered=records.filter(r=>{const dt=new Date(r.createdAt),rn=cdrRangeName(r,numberMap),cn=cdrClientName(r,numberMap),hay=`${r.note||''} ${rn}`.toLowerCase();return dt>=from&&dt<=to&&(!range||rn.toLowerCase()===range)&&(!client||cn.toLowerCase()===client)&&(!number||String(r.msisdn||'').toLowerCase().includes(number))&&(!cli||String(r.sender||'').toLowerCase().includes(cli))&&(!search||hay.includes(search));});page=1;renderCdrTable();}
-    function renderCdrTable(){const groups=getGroup(),all=groupedRows(filtered),totalPages=Math.max(1,Math.ceil(all.length/pageSize)),start=(page-1)*pageSize,rows=all.slice(start,start+pageSize),idx=columns.map((_,i)=>i).filter(i=>!hidden.has(i));const headers=idx.map(i=>columns[i]);const body=rows.map(g=>idx.map(i=>i===9?statusPill(g.values[i]):i===4?`<div class="cdr-message-cell">${cdrEscape(g.values[i])}</div>`:cdrEscape(g.values[i])));const totalPayout=filtered.reduce((a,r)=>a+Number(r.myPayout??r.carrierRate??0),0),totalClient=filtered.reduce((a,r)=>a+Number(r.clientPayout??0),0);const totalHtml=currentUser.role==='client'?`<span><b>Total SMS</b><br>${filtered.length}</span><span><b>Currency</b><br>USD</span><span><b>Client Payout</b><br>$${totalClient.toFixed(3)}</span>`:`<span><b>Total SMS</b><br>${filtered.length}</span><span><b>Currency</b><br>USD</span><span><b>My Payout</b><br>$${totalPayout.toFixed(3)}</span><span><b>Client Payout</b><br>$${totalClient.toFixed(3)}</span><span><b>Profit</b><br>$${(totalPayout-totalClient).toFixed(3)}</span>`;content.querySelector('#cdrTableHost').innerHTML=`${body.length?table(headers,body):'<div class="empty">No CDR records match the selected filters.</div>'}<div class="cdr-total-row">${totalHtml}</div><div class="cdr-pagination"><span>Showing ${all.length?start+1:0} to ${Math.min(start+pageSize,all.length)} of ${all.length} entries${groups.length?' · grouped by '+groups.join(', '):''}</span><div><button class="btn" id="cdrFirst" ${page<=1?'disabled':''}>First</button><button class="btn" id="cdrPrev" ${page<=1?'disabled':''}>Previous</button><span class="cdr-page-number">${page}</span><button class="btn" id="cdrNext" ${page>=totalPages?'disabled':''}>Next</button><button class="btn" id="cdrLast" ${page>=totalPages?'disabled':''}>Last</button></div></div>`;const nav=p=>{page=Math.min(totalPages,Math.max(1,p));renderCdrTable();};['cdrFirst','cdrPrev','cdrNext','cdrLast'].forEach((id,i)=>document.getElementById(id).onclick=()=>nav(i===0?1:i===1?page-1:i===2?page+1:totalPages));}
-    function exportRows(format){const exportIdx=columns.map((_,i)=>i).filter(i=>!hidden.has(i));const exportColumns=exportIdx.map(i=>columns[i]);const rows=groupedRows(filtered).map(g=>exportIdx.map(i=>g.values[i]).map(v=>String(v).replace(/\r?\n/g,' ')));const csv=[exportColumns,...rows].map(row=>row.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');const blob=new Blob([format==='txt'?csv:csv],{type:format==='txt'?'text/plain;charset=utf-8':'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`cdr-report.${format==='txt'?'txt':format==='excel'?'xls':'csv'}`;a.click();URL.revokeObjectURL(a.href);}
+    function renderCdrTable(){
+      const groups=getGroup(),all=groupedRows(filtered),totalPages=Math.max(1,Math.ceil(all.length/pageSize)),start=(page-1)*pageSize,rows=all.slice(start,start+pageSize);
+      const activeColumns=groupedColumns();
+      const body=rows.map(g=>g.values.map((v,i)=>activeColumns[i]==='Status'
+        ? statusPill(v)
+        : (!groups.length && activeColumns[i]==='SMS' ? `<div class="cdr-message-cell">${cdrEscape(v)}</div>` : cdrEscape(v))));
+      const totalPayout=filtered.reduce((a,r)=>a+Number(r.myPayout??r.carrierRate??0),0),totalClient=filtered.reduce((a,r)=>a+Number(r.clientPayout??0),0);
+      const totalHtml=currentUser.role==='client'?`<span><b>Total SMS</b><br>${filtered.length}</span><span><b>Currency</b><br>USD</span><span><b>Client Payout</b><br>$${totalClient.toFixed(3)}</span>`:`<span><b>Total SMS</b><br>${filtered.length}</span><span><b>Currency</b><br>USD</span><span><b>My Payout</b><br>$${totalPayout.toFixed(3)}</span><span><b>Client Payout</b><br>$${totalClient.toFixed(3)}</span><span><b>Profit</b><br>$${(totalPayout-totalClient).toFixed(3)}</span>`;
+      content.querySelector('#cdrTableHost').innerHTML=`${body.length?table(activeColumns,body):'<div class="empty">No CDR records match the selected filters.</div>'}<div class="cdr-total-row">${totalHtml}</div><div class="cdr-pagination"><span>Showing ${all.length?start+1:0} to ${Math.min(start+pageSize,all.length)} of ${all.length} entries${groups.length?' · grouped by '+groups.join(', '):''}</span><div><button class="btn" id="cdrFirst" ${page<=1?'disabled':''}>First</button><button class="btn" id="cdrPrev" ${page<=1?'disabled':''}>Previous</button><span class="cdr-page-number">${page}</span><button class="btn" id="cdrNext" ${page>=totalPages?'disabled':''}>Next</button><button class="btn" id="cdrLast" ${page>=totalPages?'disabled':''}>Last</button></div></div>`;
+      const nav=p=>{page=Math.min(totalPages,Math.max(1,p));renderCdrTable();};
+      ['cdrFirst','cdrPrev','cdrNext','cdrLast'].forEach((id,i)=>document.getElementById(id).onclick=()=>nav(i===0?1:i===1?page-1:i===2?page+1:totalPages));
+    }
+    function exportRows(format){
+      const groups=getGroup();
+      const activeColumns=groupedColumns();
+      const exportIdx=groups.length ? activeColumns.map((_,i)=>i) : activeColumns.map((_,i)=>i).filter(i=>!hidden.has(i));
+      const exportColumns=exportIdx.map(i=>activeColumns[i]);
+      const rows=groupedRows(filtered).map(g=>exportIdx.map(i=>String(g.values[i]).replace(/\r?\n/g,' ')));
+      const csv=[exportColumns,...rows].map(row=>row.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob=new Blob([csv],{type:format==='txt'?'text/plain;charset=utf-8':'text/csv;charset=utf-8'});
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`cdr-report.${format==='txt'?'txt':format==='excel'?'xls':'csv'}`;a.click();URL.revokeObjectURL(a.href);
+    }
     document.getElementById('cdrShowReport').onclick=async()=>{const btn=document.getElementById('cdrShowReport');btn.disabled=true;try{const r=await fetch('/api/cdr?_refresh='+Date.now(),{cache:'no-store'});if(r.ok){const d=await r.json();records=(Array.isArray(d.cdr)?d.cdr:[]).slice().sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));}applyFilters();}finally{btn.disabled=false;}};['cdrFrom','cdrTo','cdrRange','cdrClient','cdrNumber','cdrCli'].forEach(id=>document.getElementById(id).addEventListener('change',applyFilters));document.getElementById('cdrSearch').addEventListener('input',applyFilters);document.querySelectorAll('.cdrGroup').forEach(x=>x.onchange=()=>{page=1;renderCdrTable();});document.getElementById('cdrPageSize').onchange=e=>{pageSize=Number(e.target.value);page=1;renderCdrTable();};document.getElementById('cdrCopy').onclick=async()=>{const copyIdx=columns.map((_,i)=>i).filter(i=>!hidden.has(i));const text=[copyIdx.map(i=>columns[i]),...groupedRows(filtered).map(g=>copyIdx.map(i=>g.values[i]))].map(r=>r.join('\t')).join('\n');await navigator.clipboard?.writeText(text);};document.getElementById('cdrTxt').onclick=()=>exportRows('txt');document.getElementById('cdrCsv').onclick=()=>exportRows('csv');document.getElementById('cdrExcel').onclick=()=>exportRows('excel');document.getElementById('cdrExport').onclick=()=>exportRows('csv');document.getElementById('cdrColumns').onclick=()=>{openModal(`<h3>Show / hide columns</h3><div class="column-picker">${columns.map((x,i)=>currentUser.role==='client'&&i===7?'':`<label><input type="checkbox" data-col="${i}" ${hidden.has(i)?'':'checked'}> ${x}</label>`).join('')}</div><div class="modal-actions"><button class="btn primary" id="columnSave">Apply</button></div>`);document.querySelectorAll('[data-col]').forEach(cb=>cb.onchange=()=>{const i=Number(cb.dataset.col);if(cb.checked)hidden.delete(i);else hidden.add(i);});document.getElementById('columnSave').onclick=()=>{closeModal();renderCdrTable();};};
     applyFilters();
   } catch(e){console.error(e);content.innerHTML=`<div class="empty">Could not load CDR reports: ${cdrEscape(e.message)}</div>`;}
@@ -1403,6 +1457,37 @@ async function init() {
       btn.onclick = () => render(btn.dataset.page);
     }
   });
+
+  // Mobile navigation: keep the full menu accessible on phones instead of hiding it.
+  const mobileToggle = document.getElementById('mobileMenuToggle');
+  const mobileBackdrop = document.getElementById('mobileMenuBackdrop');
+  const sidebar = document.getElementById('mainSidebar');
+  const closeMobileMenu = () => {
+    sidebar?.classList.remove('mobile-open');
+    mobileBackdrop?.classList.remove('show');
+    mobileToggle?.setAttribute('aria-expanded','false');
+  };
+  mobileToggle?.addEventListener('click', () => {
+    const open = !sidebar?.classList.contains('mobile-open');
+    sidebar?.classList.toggle('mobile-open', open);
+    mobileBackdrop?.classList.toggle('show', open);
+    mobileToggle?.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  mobileBackdrop?.addEventListener('click', closeMobileMenu);
+  document.querySelectorAll('.nav').forEach(btn => btn.addEventListener('click', closeMobileMenu));
+
+  // Vercel serverless functions cannot keep a setInterval alive between requests.
+  // Keep the carrier scanner automatic while the Super Admin panel is open.
+  if (currentUser.role === 'super_admin') {
+    const autoScan = async () => {
+      try {
+        await fetch('/api/carrier/auto-sync', { method:'POST', cache:'no-store', keepalive:true });
+      } catch (_) {}
+    };
+    window.__mrstarkAutoScanTimer && clearInterval(window.__mrstarkAutoScanTimer);
+    autoScan();
+    window.__mrstarkAutoScanTimer = setInterval(autoScan, 1000);
+  }
 
   document.getElementById('whoName').textContent = currentUser.username;
   document.getElementById('whoRole').outerHTML = roleBadge(currentUser.role);

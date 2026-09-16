@@ -888,6 +888,19 @@ api['POST /api/carrier/sync'] = async (req, res) => {
   }
 };
 
+api['POST /api/carrier/auto-sync'] = async (req, res) => {
+  const user = getCurrentUser(req);
+  if (!user || user.role !== db.ROLES.SUPER_ADMIN) {
+    return sendJson(res, 403, { error: 'Super Admin only' });
+  }
+  try {
+    const result = await carrier.runBackgroundSync();
+    sendJson(res, 200, result);
+  } catch (e) {
+    sendJson(res, e.status || 502, { error: e.message, retryAfter: e.retryAfter || null });
+  }
+};
+
 api['GET /api/cdr'] = async (req, res) => {
   const user = getCurrentUser(req);
   if (!user) return sendJson(res, 401, { error: 'Not authenticated' });

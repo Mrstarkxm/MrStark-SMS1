@@ -1,6 +1,6 @@
-# MrStark SMS V65
+# MrStark SMS V67
 
-V65 is the Vercel persistent-storage build of MrStark SMS.
+V67 is the Vercel/Supabase build with mobile navigation, automatic browser-assisted Lamix scanning, and CDR group-by reporting.
 
 - Keeps the V63 Vercel catch-all routing fix.
 - Fixes the V64 `EROFS: read-only file system` login/session failure by persisting the JSON database state in Supabase.
@@ -21,3 +21,10 @@ See `VERCEL_DEPLOYMENT.md` and `SUPABASE_SETUP.md`.
 - Vercel login no longer writes `/var/task/data/db.json`.
 - Removed the remaining legacy `url.parse()` usage.
 - `/api/health` reports `build: V66` for deployment verification.
+
+
+## V67 changes
+- Added mobile hamburger navigation and responsive sidebar/drawer.
+- Added authenticated automatic Lamix scanning while the Super Admin panel is open on Vercel.
+- Added CDR Group by: Hour, Day, Month, Range, Number, CLI, Client, Currency, Status. Multiple selections can be combined.
+- Grouped CDR reports now show only the selected grouping dimensions plus Currency/SMS/payout aggregates, matching the supplied reference collage.

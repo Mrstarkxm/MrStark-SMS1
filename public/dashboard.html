@@ -4,13 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>MrStark Sms</title>
-  <link rel="stylesheet" href="style.css?v=v62-light">
+  <link rel="stylesheet" href="style.css?v=v67">
   <link rel="icon" type="image/png" href="assets/mrstark-sms-logo.png?v=v58">
 <script src="js/theme.js"></script>
 </head>
 <body>
 <div class="app">
-  <aside class="sidebar">
+  <div class="mobile-menu-backdrop" id="mobileMenuBackdrop"></div>
+  <aside class="sidebar" id="mainSidebar">
     <div class="brand"><img src="assets/mrstark-sms-logo.png?v=v58" alt="MrStark Sms logo"></div>
     <button class="nav active" data-page="dashboard">Dashboard</button>
     <button class="nav" data-page="managers" data-role="super_admin">Managers</button>
@@ -31,6 +32,7 @@
 
   <main>
     <header class="topbar">
+      <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Open menu" aria-expanded="false">☰</button>
       <div>
         <div class="eyebrow"><span class="eyebrow-dot"></span> Operations workspace</div>
         <h1 id="title">Dashboard</h1>
@@ -48,6 +50,6 @@
     <section id="content"></section>
   </main>
 </div>
-<script src="dashboard.js?v=v59"></script>
+<script src="dashboard.js?v=v67"></script>
 </body>
 </html>
