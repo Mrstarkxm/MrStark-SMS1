@@ -1,0 +1,10 @@
+V71 Fast CDR Scanner
+
+- Live CDR polling is now CDR-only; heavy inventory/range scanning no longer blocks new CDR imports.
+- Fast CDR path uses /cdrs?limit=250 with cache-busting and a 5s provider timeout.
+- Empty CDR responses fall back to only two common Lamix variants in parallel instead of the old long serial probe.
+- Carrier page now has Fast CDR Scan plus Full Sync.
+- Vercel browser auto CDR scan runs every 2 seconds while the Super Admin panel is open.
+- Inventory/range background refresh is separated to a 30-second schedule.
+- CDR page refreshes records every 2 seconds without triggering a second scan on every refresh.
+- Existing Supabase persistence, permissions, mobile UI, Group By, and other V70 fixes are preserved.

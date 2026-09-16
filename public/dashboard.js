@@ -141,7 +141,7 @@ async function carrierPage() {
       <p class="muted">The API token is intentionally not stored in the project or shown in this panel. Configure it as <code>LAMIX_API_TOKEN</code> on the server.</p>
       <div class="toolbar" style="margin-top:14px">
         <button class="btn" id="testLamixBtn" ${data.configured ? '' : 'disabled'}>Test Connection</button>
-        <button class="btn primary" id="syncLamixBtn" ${data.configured ? '' : 'disabled'}>Sync Now</button>
+        <button class="btn primary" id="syncLamixBtn" ${data.configured ? '' : 'disabled'}>Fast CDR Scan</button><button class="btn" id="fullSyncLamixBtn" ${data.configured ? '' : 'disabled'}>Full Sync</button>
       </div>
       <div class="auth-error" id="carrierError"></div>
       <div id="carrierResult" class="muted" style="margin-top:12px"></div>
@@ -164,7 +164,30 @@ async function carrierPage() {
   const resultEl = document.getElementById('carrierResult');
   const testBtn = document.getElementById('testLamixBtn');
   const syncBtn = document.getElementById('syncLamixBtn');
+  const fullSyncBtn = document.getElementById('fullSyncLamixBtn');
   const manualBtn = document.getElementById('manualImportBtn');
+  fullSyncBtn.onclick = async () => {
+    fullSyncBtn.disabled = true;
+    syncBtn.disabled = true;
+    testBtn.disabled = true;
+    errorEl.classList.remove('show');
+    resultEl.textContent = 'Full sync: ranges, numbers and CDRs...';
+    try {
+      const r = await fetch('/api/carrier/sync', { method: 'POST', cache:'no-store' });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Full sync failed');
+      resultEl.textContent = `Full sync complete — ${Number(d.numbersImported||0)} numbers imported, ${Number(d.cdrsImported||0)} CDRs imported, ${Number(d.cdrsUpdated||0)} updated.`;
+    } catch (e) {
+      errorEl.textContent = e.message || 'Full sync failed';
+      errorEl.classList.add('show');
+      resultEl.textContent = '';
+    } finally {
+      fullSyncBtn.disabled = false;
+      syncBtn.disabled = false;
+      testBtn.disabled = false;
+    }
+  };
+
   if (window.__mrstarkCarrierStatusTimer) clearInterval(window.__mrstarkCarrierStatusTimer);
   window.__mrstarkCarrierStatusTimer = setInterval(async () => {
     if (!document.getElementById('carrierResult')) return;
@@ -218,12 +241,14 @@ async function carrierPage() {
 
   syncBtn.onclick = async () => {
     syncBtn.disabled = true;
+    fullSyncBtn.disabled = true;
     testBtn.disabled = true;
     errorEl.classList.remove('show');
-    resultEl.textContent = 'Syncing ranges, numbers and CDRs...';
-    const r = await fetch('/api/carrier/sync', { method: 'POST' });
+    resultEl.textContent = 'Fast CDR scan in progress...';
+    const r = await fetch('/api/carrier/cdr-sync', { method: 'POST', cache:'no-store' });
     const d = await r.json();
     syncBtn.disabled = false;
+    fullSyncBtn.disabled = false;
     testBtn.disabled = false;
     if (!r.ok) {
       errorEl.textContent = d.error || 'Sync failed';
@@ -1359,8 +1384,8 @@ async function cdrPage() {
     if (window.__mrstarkCdrLiveTimer) clearInterval(window.__mrstarkCdrLiveTimer);
     window.__mrstarkCdrLiveTimer = setInterval(() => {
       if (!document.getElementById('cdrTableHost')) return;
-      refreshCdrFromServer(true);
-    }, 3000);
+      refreshCdrFromServer(false);
+    }, 2000);
   } catch(e){console.error(e);content.innerHTML=`<div class="empty">Could not load CDR reports: ${cdrEscape(e.message)}</div>`;}
 }
 
@@ -1563,7 +1588,15 @@ async function init() {
     autoScan();
     // 3s polling avoids overlapping serverless/Lamix requests while remaining
     // fast enough for near-live inbound CDR updates.
-    window.__mrstarkAutoScanTimer = setInterval(autoScan, 3000);
+    window.__mrstarkAutoScanTimer = setInterval(autoScan, 2000);
+    const autoInventory = async () => {
+      if (window.__mrstarkInventorySyncInFlight) return;
+      window.__mrstarkInventorySyncInFlight = true;
+      try { await fetch('/api/carrier/inventory-sync?_=' + Date.now(), { method:'POST', cache:'no-store' }); } catch (_) {}
+      finally { window.__mrstarkInventorySyncInFlight = false; }
+    };
+    window.__mrstarkAutoInventoryTimer && clearInterval(window.__mrstarkAutoInventoryTimer);
+    window.__mrstarkAutoInventoryTimer = setInterval(autoInventory, 30000);
   }
 
   document.getElementById('whoName').textContent = currentUser.username;

@@ -888,6 +888,19 @@ api['POST /api/carrier/sync'] = async (req, res) => {
   }
 };
 
+api['POST /api/carrier/cdr-sync'] = async (req, res) => {
+  const user = getCurrentUser(req);
+  if (!user || user.role !== db.ROLES.SUPER_ADMIN) {
+    return sendJson(res, 403, { error: 'Super Admin only' });
+  }
+  try {
+    const result = await carrier.runBackgroundSync();
+    sendJson(res, 200, result);
+  } catch (e) {
+    sendJson(res, e.status || 502, { error: e.message, retryAfter: e.retryAfter || null });
+  }
+};
+
 api['POST /api/carrier/auto-sync'] = async (req, res) => {
   const user = getCurrentUser(req);
   if (!user || user.role !== db.ROLES.SUPER_ADMIN) {
@@ -895,6 +908,19 @@ api['POST /api/carrier/auto-sync'] = async (req, res) => {
   }
   try {
     const result = await carrier.runBackgroundSync();
+    sendJson(res, 200, result);
+  } catch (e) {
+    sendJson(res, e.status || 502, { error: e.message, retryAfter: e.retryAfter || null });
+  }
+};
+
+api['POST /api/carrier/inventory-sync'] = async (req, res) => {
+  const user = getCurrentUser(req);
+  if (!user || user.role !== db.ROLES.SUPER_ADMIN) {
+    return sendJson(res, 403, { error: 'Super Admin only' });
+  }
+  try {
+    const result = await carrier.runBackgroundInventorySync();
     sendJson(res, 200, result);
   } catch (e) {
     sendJson(res, e.status || 502, { error: e.message, retryAfter: e.retryAfter || null });
