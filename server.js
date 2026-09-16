@@ -3,7 +3,6 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const url = require('url');
 
 const db = require('./lib/db');
 const { verifyPassword } = require('./lib/hash');
@@ -14,6 +13,12 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 const SESSION_COOKIE = 'sid';
 
 db.ensureSeed();
+
+// On Vercel, hydrate the in-memory JSON-compatible store from Supabase before
+// serving a request. Local development continues to use data/db.json directly.
+async function prepareRequest() {
+  await db.initializePersistentDb();
+}
 
 // ---------- small helpers ----------
 
@@ -122,6 +127,16 @@ function isValidPassword(p) {
 // ---------- API handlers ----------
 
 const api = {};
+
+api['GET /api/health'] = async (req, res) => {
+  const persistence = db.getPersistenceStatus();
+  sendJson(res, 200, {
+    ok: true,
+    build: 'V66',
+    vercel: Boolean(process.env.VERCEL),
+    persistence
+  });
+};
 
 api['POST /api/auth/login'] = async (req, res) => {
   const body = await readJsonBody(req);
@@ -461,7 +476,8 @@ api['GET /api/dashboard/stats'] = async (req, res) => {
 api['GET /api/numbers'] = async (req, res) => {
   const user = getCurrentUser(req);
   if (!user) return sendJson(res, 401, { error: 'Not authenticated' });
-  const q = url.parse(req.url, true).query;
+  const requestQueryUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+   const q = Object.fromEntries(requestQueryUrl.searchParams.entries());
   let scope = {};
   if (user.role === db.ROLES.SUPER_ADMIN) scope = {};
   else if (user.role === db.ROLES.AGENT) scope = { scopeAdminId: user.id };
@@ -1092,17 +1108,27 @@ function matchRoute(method, pathname) {
 }
 
 const server = http.createServer(async (req, res) => {
-  const parsed = url.parse(req.url, true);
-  const pathname = decodeURIComponent(parsed.pathname);
+  const requestUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const pathname = decodeURIComponent(requestUrl.pathname);
 
   if (pathname.startsWith('/api/')) {
+    try {
+      await prepareRequest();
+    } catch (e) {
+      console.error(e);
+      return sendJson(res, 500, { error: 'Persistent database is not configured or reachable' });
+    }
     const match = matchRoute(req.method, pathname);
     if (!match) return sendJson(res, 404, { error: 'Not found' });
     try {
       await match.handler(req, res, match.params);
+      await db.flushPersistence();
     } catch (e) {
       console.error(e);
-      if (!res.headersSent) sendJson(res, 500, { error: 'Internal server error' });
+      if (!res.headersSent) {
+        const message = process.env.VERCEL ? String(e?.message || 'Internal server error') : 'Internal server error';
+        sendJson(res, 500, { error: message });
+      }
     }
     return;
   }
@@ -1117,8 +1143,17 @@ const server = http.createServer(async (req, res) => {
   serveStatic(req, res, filePath);
 });
 
-carrier.start();
+// Local development keeps the original always-on Lamix scanner. Vercel
+// functions are short-lived, so background setInterval jobs must not be used there.
+if (!process.env.VERCEL) {
+  carrier.start();
+}
 
-server.listen(PORT, () => {
-  console.log(`MrStark Sms server running at http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`MrStark Sms server running at http://localhost:${PORT}`);
+  });
+}
+
+// Export the Node HTTP handler for Vercel Serverless Functions.
+module.exports = server;

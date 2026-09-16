@@ -1,5 +1,5 @@
 (function () {
-  const KEY = "mrstark-theme";
+  const KEY = "mrstark-theme-v3";
 
   function applyTheme(theme) {
     const root = document.documentElement;
@@ -15,10 +15,10 @@
     });
   }
 
-  // Default is DARK. Only a saved user choice overrides it.
+  // Default is LIGHT (white). A saved choice in the current theme version may override it.
   let saved = null;
   try { saved = localStorage.getItem(KEY); } catch (e) {}
-  applyTheme(saved === "light" ? "light" : "dark");
+  applyTheme(saved === "dark" ? "dark" : "light");
 
   window.toggleMrStarkTheme = function () {
     const next = document.documentElement.getAttribute("data-theme") === "dark"
@@ -47,7 +47,7 @@
       button.className = "theme-toggle";
       button.innerHTML = '<span class="theme-icon">☾</span><span class="theme-label">Dark mode</span>';
       candidates[0].appendChild(button);
-      applyTheme(document.documentElement.getAttribute("data-theme") || "dark");
+      applyTheme(document.documentElement.getAttribute("data-theme") || "light");
     }
   });
 })();
