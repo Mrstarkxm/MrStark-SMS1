@@ -1319,8 +1319,48 @@ async function cdrPage() {
       const blob=new Blob([csv],{type:format==='txt'?'text/plain;charset=utf-8':'text/csv;charset=utf-8'});
       const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`cdr-report.${format==='txt'?'txt':format==='excel'?'xls':'csv'}`;a.click();URL.revokeObjectURL(a.href);
     }
-    document.getElementById('cdrShowReport').onclick=async()=>{const btn=document.getElementById('cdrShowReport');btn.disabled=true;try{const r=await fetch('/api/cdr?_refresh='+Date.now(),{cache:'no-store'});if(r.ok){const d=await r.json();records=(Array.isArray(d.cdr)?d.cdr:[]).slice().sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));}applyFilters();}finally{btn.disabled=false;}};['cdrFrom','cdrTo','cdrRange','cdrClient','cdrNumber','cdrCli'].forEach(id=>document.getElementById(id).addEventListener('change',applyFilters));document.getElementById('cdrSearch').addEventListener('input',applyFilters);document.querySelectorAll('.cdrGroup').forEach(x=>x.onchange=()=>{page=1;renderCdrTable();});document.getElementById('cdrPageSize').onchange=e=>{pageSize=Number(e.target.value);page=1;renderCdrTable();};document.getElementById('cdrCopy').onclick=async()=>{const copyIdx=columns.map((_,i)=>i).filter(i=>!hidden.has(i));const text=[copyIdx.map(i=>columns[i]),...groupedRows(filtered).map(g=>copyIdx.map(i=>g.values[i]))].map(r=>r.join('\t')).join('\n');await navigator.clipboard?.writeText(text);};document.getElementById('cdrTxt').onclick=()=>exportRows('txt');document.getElementById('cdrCsv').onclick=()=>exportRows('csv');document.getElementById('cdrExcel').onclick=()=>exportRows('excel');document.getElementById('cdrExport').onclick=()=>exportRows('csv');document.getElementById('cdrColumns').onclick=()=>{openModal(`<h3>Show / hide columns</h3><div class="column-picker">${columns.map((x,i)=>currentUser.role==='client'&&i===7?'':`<label><input type="checkbox" data-col="${i}" ${hidden.has(i)?'':'checked'}> ${x}</label>`).join('')}</div><div class="modal-actions"><button class="btn primary" id="columnSave">Apply</button></div>`);document.querySelectorAll('[data-col]').forEach(cb=>cb.onchange=()=>{const i=Number(cb.dataset.col);if(cb.checked)hidden.delete(i);else hidden.add(i);});document.getElementById('columnSave').onclick=()=>{closeModal();renderCdrTable();};};
-    applyFilters();
+    const refreshCdrFromServer = async (alsoSync = false) => {
+      if (!document.getElementById('cdrTableHost')) return;
+      try {
+        // On Vercel the serverless process cannot stay alive between requests.
+        // Trigger the protected browser-side sync first so a newly arrived Lamix
+        // CDR is imported before the report is refreshed. This removes the old
+        // requirement to open Carrier and click Sync Now manually.
+        if (alsoSync && currentUser.role === 'super_admin' && !window.__mrstarkCdrSyncInFlight) {
+          window.__mrstarkCdrSyncInFlight = true;
+          try {
+            const sr = await fetch('/api/carrier/auto-sync?_=' + Date.now(), { method:'POST', cache:'no-store' });
+            if (sr.ok) {
+              try { window.__mrstarkLastAutoScanResult = await sr.json(); } catch (_) {}
+            }
+          } finally { window.__mrstarkCdrSyncInFlight = false; }
+        }
+        const r = await fetch('/api/cdr?_refresh='+Date.now(), {cache:'no-store'});
+        if (!r.ok) return;
+        const d = await r.json();
+        records=(Array.isArray(d.cdr)?d.cdr:[]).slice().sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+        applyFilters();
+      } catch (_) {}
+    };
+    document.getElementById('cdrShowReport').onclick=async()=>{const btn=document.getElementById('cdrShowReport');btn.disabled=true;try{await refreshCdrFromServer(true);}finally{btn.disabled=false;}};
+    ['cdrFrom','cdrTo','cdrRange','cdrClient','cdrNumber','cdrCli'].forEach(id=>document.getElementById(id).addEventListener('change',applyFilters));
+    document.getElementById('cdrSearch').addEventListener('input',applyFilters);
+    document.querySelectorAll('.cdrGroup').forEach(x=>x.onchange=()=>{page=1;renderCdrTable();});
+    document.getElementById('cdrPageSize').onchange=e=>{pageSize=Number(e.target.value);page=1;renderCdrTable();};
+    document.getElementById('cdrCopy').onclick=async()=>{const copyIdx=columns.map((_,i)=>i).filter(i=>!hidden.has(i));const text=[copyIdx.map(i=>columns[i]),...groupedRows(filtered).map(g=>copyIdx.map(i=>g.values[i]))].map(r=>r.join('\t')).join('\n');await navigator.clipboard?.writeText(text);};
+    document.getElementById('cdrTxt').onclick=()=>exportRows('txt');document.getElementById('cdrCsv').onclick=()=>exportRows('csv');document.getElementById('cdrExcel').onclick=()=>exportRows('excel');document.getElementById('cdrExport').onclick=()=>exportRows('csv');
+    document.getElementById('cdrColumns').onclick=()=>{openModal(`<h3>Show / hide columns</h3><div class="column-picker">${columns.map((x,i)=>currentUser.role==='client'&&i===7?'':`<label><input type="checkbox" data-col="${i}" ${hidden.has(i)?'':'checked'}> ${x}</label>`).join('')}</div><div class="modal-actions"><button class="btn primary" id="columnSave">Apply</button></div>`);document.querySelectorAll('[data-col]').forEach(cb=>cb.onchange=()=>{const i=Number(cb.dataset.col);if(cb.checked)hidden.delete(i);else hidden.add(i);});document.getElementById('columnSave').onclick=()=>{closeModal();renderCdrTable();};};
+
+    // First load: sync Lamix immediately, then show the newest CDRs.
+    await refreshCdrFromServer(true);
+
+    // Keep the CDR report live while this page is open. Do not create overlapping
+    // Vercel requests; one sync must finish before another starts.
+    if (window.__mrstarkCdrLiveTimer) clearInterval(window.__mrstarkCdrLiveTimer);
+    window.__mrstarkCdrLiveTimer = setInterval(() => {
+      if (!document.getElementById('cdrTableHost')) return;
+      refreshCdrFromServer(true);
+    }, 3000);
   } catch(e){console.error(e);content.innerHTML=`<div class="empty">Could not load CDR reports: ${cdrEscape(e.message)}</div>`;}
 }
 
@@ -1508,16 +1548,22 @@ async function init() {
   // Keep the carrier scanner automatic while the Super Admin panel is open.
   if (currentUser.role === 'super_admin') {
     const autoScan = async () => {
+      if (window.__mrstarkCdrSyncInFlight) return;
+      window.__mrstarkCdrSyncInFlight = true;
       try {
-        const response = await fetch('/api/carrier/auto-sync', { method:'POST', cache:'no-store' });
+        const response = await fetch('/api/carrier/auto-sync?_=' + Date.now(), { method:'POST', cache:'no-store' });
         if (response.ok) {
           try { window.__mrstarkLastAutoScanResult = await response.json(); } catch (_) {}
         }
-      } catch (_) {}
+      } catch (_) {} finally {
+        window.__mrstarkCdrSyncInFlight = false;
+      }
     };
     window.__mrstarkAutoScanTimer && clearInterval(window.__mrstarkAutoScanTimer);
     autoScan();
-    window.__mrstarkAutoScanTimer = setInterval(autoScan, 1000);
+    // 3s polling avoids overlapping serverless/Lamix requests while remaining
+    // fast enough for near-live inbound CDR updates.
+    window.__mrstarkAutoScanTimer = setInterval(autoScan, 3000);
   }
 
   document.getElementById('whoName').textContent = currentUser.username;
