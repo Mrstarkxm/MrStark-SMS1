@@ -31,3 +31,7 @@ See `VERCEL_DEPLOYMENT.md` and `SUPABASE_SETUP.md`.
 
 
 V73: protected Supabase state writes from concurrent Vercel instances and fixed Bulk Add range filtering.
+
+
+## V76
+Cross-instance auth/state freshness and dashboard allocation-count fixes.

@@ -18,6 +18,10 @@ db.ensureSeed();
 // serving a request. Local development continues to use data/db.json directly.
 async function prepareRequest() {
   await db.initializePersistentDb();
+  // Refresh only when the shared Supabase state has changed. This fixes stale
+  // Vercel-instance views (new clients, allocations and CDRs) without fetching
+  // the full JSON state on every request.
+  await db.refreshPersistentDbIfChanged();
 }
 
 // ---------- small helpers ----------

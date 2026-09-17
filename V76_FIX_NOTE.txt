@@ -1,0 +1,9 @@
+
+V76 FIX NOTE
+
+- Stateless signed auth cookie removes cross-instance Not authenticated errors on Vercel.
+- Lightweight Supabase updated_at refresh keeps warm Vercel instances current without downloading full state on every request.
+- Client number counts include direct holder allocations.
+- Agent/Manager dashboard SMS counts include direct holder CDR snapshots.
+- Remaining manual-number ID allocation now uses collision-resistant allocator.
+- MRSTARK_SESSION_SECRET is supported; if omitted, server derives a stable signing secret from existing server-only secrets.
