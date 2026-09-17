@@ -1,0 +1,8 @@
+V79 CONFIRMED BUILD
+
+- Health endpoint build marker is V79.
+- Global panel-wide username uniqueness is enforced case-insensitively and with surrounding whitespace trimmed.
+- Duplicate username is rejected across Super Admin, Manager, Agent and Client roles.
+- Username changes are also checked against every other user.
+- Existing V78 CDR/dashboard/persistence fixes are preserved from the supplied V79 base.
+- Vercel config contains no per-minute cron schedule, so it remains Hobby-compatible.
