@@ -1,6 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "crons": [{"path":"/api/cron-sync","schedule":"* * * * *"}],
   "functions": {
     "api/[...path].js": {
       "includeFiles": "{public/**,lib/**,data/**}"

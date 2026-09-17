@@ -4,3 +4,6 @@ V78 CDR + Dashboard Scope/Persistence Fix
 - Agent Active Numbers dashboard scope now includes numbers where holderUserId is the Agent. Direct Agent allocations therefore count on the dashboard.
 - CDR persistence batching is protected with try/finally so a warm serverless instance cannot remain stuck in batch mode after an unexpected sync exception.
 - Existing V77 persistence, allocation snapshots, and permissions are preserved.
+
+
+V78 Vercel Hobby deployment fix: removed the per-minute Vercel Cron entry because Hobby projects reject schedules more frequent than once per day. CDR live-sync remains browser/server triggered.
