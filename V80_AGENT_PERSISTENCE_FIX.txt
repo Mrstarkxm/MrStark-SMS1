@@ -1,0 +1,20 @@
+V80 - Agent/Manager/Client Persistence Safety Fix
+======================================================
+Based on V79 Global Username Security.
+
+Purpose:
+- Stop Agents/Managers/Clients from appearing, disappearing, and reappearing
+  when multiple Vercel instances refresh/save the shared Supabase JSON state.
+- Prevent stale remote snapshots from replacing the current local snapshot.
+- Reconcile remote and local state by stable identities instead of wholesale
+  replacement.
+- User records are loss-averse: existing users are preserved during merges.
+- If a local user is missing remotely, the merged state is queued back to
+  Supabase to heal the shared snapshot.
+- Existing V79 global username uniqueness remains intact.
+- Existing CDR, allocation, dashboard, and Supabase persistence fixes remain.
+- No Vercel per-minute cron is added.
+
+IMPORTANT:
+- This fix is designed to preserve existing data. Do not delete/replace the
+  Supabase mrstark_state row while deploying.
