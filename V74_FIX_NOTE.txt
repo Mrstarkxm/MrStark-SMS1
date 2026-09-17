@@ -1,1 +1,12 @@
-V74 Manager/Agent Persistence Race Fix\n\nFixed concurrent Supabase state writes with optimistic locking/retry and collision-resistant numeric user IDs. Prevents Manager/Agent records from disappearing when Vercel instances save stale snapshots concurrently.\n
+V75 Persistence + Deployment Integrity Fix
+
+Built from V74. Fixes the remaining concurrent-state race that could erase number allocations when a stale carrier-sync snapshot was merged after an allocation.
+
+Changes:
+- Stable collision-resistant IDs for users, numbers, ranges, CDRs, rate cards and request/history records.
+- Supabase merge identity uses username/MSISDN/range externalId/carrier CDR id where available.
+- Number allocation state has its own allocationUpdatedAt clock; stale snapshots cannot reset holder, owner, client, status or range.
+- User updates carry updatedAt.
+- /api/health build marker is V75 so the deployed version can be verified.
+
+IMPORTANT: Keep the production Supabase state. Do not replace data/db.json with an old snapshot in Supabase.
