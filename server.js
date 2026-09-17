@@ -218,8 +218,11 @@ api['POST /api/auth/register'] = async (req, res) => {
     );
     sendJson(res, 201, { user: db.sanitizeUser(user) });
   } catch (e) {
-    if (e.code === 'DUPLICATE') {
-      return sendJson(res, 409, { error: 'Username or email already in use' });
+    if (e.code === 'DUPLICATE_USERNAME') {
+      return sendJson(res, 409, { error: 'Username already exists across the panel. Please choose another username.' });
+    }
+    if (e.code === 'DUPLICATE_EMAIL' || e.code === 'DUPLICATE') {
+      return sendJson(res, 409, { error: 'Email already in use' });
     }
     console.error(e);
     sendJson(res, 500, { error: 'Registration failed' });
@@ -263,7 +266,8 @@ api['POST /api/managers'] = async (req, res) => {
     const manager = db.createUser({ role: db.ROLES.MANAGER, username, email, password, parentAdminId: null, parentManagerId: null });
     sendJson(res, 201, { manager: db.sanitizeUser(manager) });
   } catch (e) {
-    if (e.code === 'DUPLICATE') return sendJson(res, 409, { error: 'Username or email already in use' });
+    if (e.code === 'DUPLICATE_USERNAME') return sendJson(res, 409, { error: 'Username already exists across the panel. Please choose another username.' });
+    if (e.code === 'DUPLICATE_EMAIL' || e.code === 'DUPLICATE') return sendJson(res, 409, { error: 'Email already in use' });
     sendJson(res, 500, { error: 'Could not create manager' });
   }
 };
@@ -322,8 +326,11 @@ api['POST /api/admins'] = async (req, res) => {
     });
     sendJson(res, 201, { admin: db.sanitizeUser(admin) });
   } catch (e) {
-    if (e.code === 'DUPLICATE') {
-      return sendJson(res, 409, { error: 'Username or email already in use' });
+    if (e.code === 'DUPLICATE_USERNAME') {
+      return sendJson(res, 409, { error: 'Username already exists across the panel. Please choose another username.' });
+    }
+    if (e.code === 'DUPLICATE_EMAIL' || e.code === 'DUPLICATE') {
+      return sendJson(res, 409, { error: 'Email already in use' });
     }
     console.error(e);
     sendJson(res, 500, { error: 'Could not create admin' });
@@ -420,8 +427,11 @@ api['POST /api/clients'] = async (req, res) => {
     });
     sendJson(res, 201, { client: db.sanitizeUser(client) });
   } catch (e) {
-    if (e.code === 'DUPLICATE') {
-      return sendJson(res, 409, { error: 'Username or email already in use' });
+    if (e.code === 'DUPLICATE_USERNAME') {
+      return sendJson(res, 409, { error: 'Username already exists across the panel. Please choose another username.' });
+    }
+    if (e.code === 'DUPLICATE_EMAIL' || e.code === 'DUPLICATE') {
+      return sendJson(res, 409, { error: 'Email already in use' });
     }
     console.error(e);
     sendJson(res, 500, { error: 'Could not create client' });

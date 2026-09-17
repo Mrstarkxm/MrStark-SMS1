@@ -1,0 +1,9 @@
+V79 Global Username Security + Data Preservation
+
+- Usernames are globally unique across the entire panel, regardless of role or parent/scope.
+- Username matching is case-insensitive and trimmed, so Ali, ali and surrounding whitespace cannot create separate accounts.
+- Duplicate email remains separately blocked.
+- Future username edits are also protected from collisions.
+- Existing users, numbers, ranges, CDRs, allocations and balances are not migrated, reset or deleted by this change.
+- Supabase persistence and V78 CDR/dashboard fixes are preserved.
+- Health build marker is V79.
