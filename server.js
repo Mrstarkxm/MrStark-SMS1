@@ -136,7 +136,7 @@ api['GET /api/health'] = async (req, res) => {
   const persistence = db.getPersistenceStatus();
   sendJson(res, 200, {
     ok: true,
-    build: 'V81',
+    build: 'V82',
     vercel: Boolean(process.env.VERCEL),
     persistence
   });

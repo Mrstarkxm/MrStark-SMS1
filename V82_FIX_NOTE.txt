@@ -1,0 +1,10 @@
+V82 - Persistence Queue + Canonical Range Identity Fix
+
+- Coalesces Supabase writes so Lamix scans cannot queue hundreds of stale snapshots ahead of user/rate changes.
+- Shared persistence uses canonical range identity (normalized master/source/name, LX/MRS normalized), preventing duplicate ranges from being resurrected.
+- Range merge preserves custom Super Admin rate/name and assignment.
+- Bulk Add is persistence-batched; Super Admin bulk range rates receive explicit custom timestamps.
+- Full Lamix inventory sync is persistence-batched instead of one remote write per range/number mutation.
+- Health marker: V82.
+- No existing Supabase data is deleted or reset.
+- No Vercel per-minute cron is used.
