@@ -28,3 +28,6 @@ See `VERCEL_DEPLOYMENT.md` and `SUPABASE_SETUP.md`.
 - Added authenticated automatic Lamix scanning while the Super Admin panel is open on Vercel.
 - Added CDR Group by: Hour, Day, Month, Range, Number, CLI, Client, Currency, Status. Multiple selections can be combined.
 - Grouped CDR reports now show only the selected grouping dimensions plus Currency/SMS/payout aggregates, matching the supplied reference collage.
+
+
+V73: protected Supabase state writes from concurrent Vercel instances and fixed Bulk Add range filtering.

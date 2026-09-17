@@ -1155,10 +1155,10 @@ async function bulkAddPage() {
     let visible = 0;
     document.querySelectorAll('.bulk-target-row').forEach(row => {
       const show = !q || String(row.dataset.search || '').includes(q);
-      row.hidden = !show; if (show) visible++;
+      row.hidden = !show; row.style.display = show ? '' : 'none'; if (show) visible++;
     });
     document.querySelectorAll('[data-bulk-target-group]').forEach(group => {
-      group.hidden = !group.querySelector('.bulk-target-row:not([hidden])');
+      group.hidden = !group.querySelector('.bulk-target-row:not([hidden])'); group.style.display = group.hidden ? 'none' : '';
     });
     document.getElementById('bulkTargetSearchCount').textContent = q ? `${visible} matching users` : `${targets.length} users`;
   };
@@ -1167,7 +1167,7 @@ async function bulkAddPage() {
     let visible = 0;
     document.querySelectorAll('.bulk-range-row').forEach(row => {
       const show = !q || String(row.dataset.search || '').includes(q);
-      row.hidden = !show; if (show) visible++;
+      row.hidden = !show; row.style.display = show ? '' : 'none'; if (show) visible++;
     });
     document.getElementById('bulkRangeSearchCount').textContent = q ? `${visible} matching ranges` : `${ranges.length} ranges`;
   };

@@ -177,6 +177,7 @@ html[data-theme="light"] .table-wrap:hover {
 .bulk-select-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:7px; }
 .bulk-range-row { display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:10px; padding:8px 12px; border-bottom:1px solid var(--theme-border); }
 .bulk-range-row:last-child { border-bottom:0; }
+.bulk-range-row[hidden], .bulk-target-row[hidden], [data-bulk-target-group][hidden] { display:none !important; }
 .bulk-rate-wrap { display:flex; align-items:center; gap:4px; }
 .bulk-range-rate { width:105px; padding:8px; }
 @media (max-width: 760px) {
