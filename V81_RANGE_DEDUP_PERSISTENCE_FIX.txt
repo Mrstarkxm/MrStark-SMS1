@@ -1,0 +1,11 @@
+V81 — Range Deduplication + Persistent Assignment/Rate Fix
+
+Fixes:
+- Existing duplicate ranges are merged by canonical range name/master identity.
+- Numbers, range rates, assignments, range requests and bulk history are re-pointed to the surviving range.
+- Lamix external IDs are kept as aliases so future syncs cannot recreate the same displayed range.
+- Super Admin range rate/name/assignment changes carry timestamps and survive stale Vercel instances.
+- Supabase remote refresh/commit now uses field-aware range merging instead of blindly replacing a saved rate or assignment.
+- Existing data is merged non-destructively; no users, numbers, CDRs or ranges are intentionally deleted.
+- Vercel Hobby-compatible; no per-minute cron added.
+- Health build marker is V81.
