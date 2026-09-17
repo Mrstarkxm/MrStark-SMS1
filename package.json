@@ -1,8 +1,8 @@
 {
   "name": "mrstark-sms",
-  "version": "0.71.0",
+  "version": "0.72.0",
   "private": true,
-  "description": "MrStark Sms - V65 with persistent Supabase storage for Vercel",
+  "description": "MrStark Sms - V72 Bulk Search and CDR Holder Attribution",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

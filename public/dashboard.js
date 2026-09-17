@@ -1074,24 +1074,25 @@ async function bulkAddPage() {
 
   const targets = data.targets || [], ranges = data.ranges || [];
   const roleLabel = r => ({manager:'Manager',agent:'Agent',client:'Client'})[r] || r;
+  const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
   const targetGroups = ['manager','agent','client'].map(role => {
     const items = targets.filter(t => t.role === role);
     if (!items.length) return '';
-    return `<div class="bulk-group"><div class="bulk-group-title">${roleLabel(role)}</div>${
-      items.map(t => `<label class="check-row"><input type="checkbox" class="bulk-target" value="${t.id}"><span>${t.username}</span></label>`).join('')
+    return `<div class="bulk-group" data-bulk-target-group="${role}"><div class="bulk-group-title">${roleLabel(role)}</div>${
+      items.map(t => `<label class="check-row bulk-target-row" data-search="${esc(t.username).toLowerCase()}"><input type="checkbox" class="bulk-target" value="${t.id}"><span>${esc(t.username)}</span></label>`).join('')
     }</div>`;
   }).join('');
 
   const rangeRows = ranges.map(r => `
-    <div class="bulk-range-row" data-range-id="${r.id}">
+    <div class="bulk-range-row" data-range-id="${r.id}" data-search="${esc(r.name).toLowerCase()}">
       <label class="check-row">
         <input type="checkbox" class="bulk-range" value="${r.id}">
-        <span class="bulk-range-name">${r.name}</span>
+        <span class="bulk-range-name">${esc(r.name)}</span>
       </label>
       <div class="bulk-rate-wrap">
         <span class="muted">$</span>
-        <input class="input bulk-range-rate" type="number" min="0" step="0.0001" value="${Number(currentUser.role==='super_admin' ? (r.superAdminRate ?? r.effectiveRate ?? 0) : (r.clientRate ?? 0)).toFixed(4)}" aria-label="${currentUser.role==='super_admin'?'Super Admin payout':'Client-facing'} rate for ${r.name}">
+        <input class="input bulk-range-rate" type="number" min="0" step="0.0001" value="${Number(currentUser.role==='super_admin' ? (r.superAdminRate ?? r.effectiveRate ?? 0) : (r.clientRate ?? 0)).toFixed(4)}" aria-label="${currentUser.role==='super_admin'?'Super Admin payout':'Client-facing'} rate for ${esc(r.name)}">
         <span class="muted">/ SMS</span>
       </div>
       <span class="muted">${r.availableCount || 0} free · max $${Number(r.superAdminRate ?? r.rate ?? 0).toFixed(4)}</span>
@@ -1102,15 +1103,19 @@ async function bulkAddPage() {
     <div class="grid bulk-grid">
       <div class="card">
         <h3 style="margin-top:0">Bulk Add Numbers</h3>
-        <p class="muted">Works on mobile too. Tap recipients and ranges instead of using Ctrl/⌘.</p>
+        <p class="muted">Works on mobile too. Search recipients and ranges below, then select the numbers to allocate.</p>
 
         <div class="field">
           <div class="bulk-select-head"><label>Recipients</label><button class="btn small ghost" id="toggleTargets">Select all</button></div>
+          <input class="input" id="bulkTargetSearch" placeholder="Search users…" autocomplete="off" style="width:100%;margin:0 0 10px">
+          <div class="muted" id="bulkTargetSearchCount" style="margin:-4px 0 8px"></div>
           <div class="bulk-checklist" id="bulkTargetsList">${targetGroups || '<div class="empty">No active recipients available.</div>'}</div>
         </div>
 
         <div class="field">
           <div class="bulk-select-head"><label>Ranges + ${currentUser.role==='super_admin'?'payout':'client'} rate per range</label><button class="btn small ghost" id="toggleRanges">Select all</button></div>
+          <input class="input" id="bulkRangeSearch" placeholder="Search ranges…" autocomplete="off" style="width:100%;margin:0 0 10px">
+          <div class="muted" id="bulkRangeSearchCount" style="margin:-4px 0 8px"></div>
           <div class="bulk-checklist" id="bulkRangesList">${rangeRows || '<div class="empty">No ranges available.</div>'}</div>
           <small>${currentUser.role==='super_admin'
             ? 'Super Admin controls the base payout rate.'
@@ -1144,17 +1149,42 @@ async function bulkAddPage() {
     <div id="bulkHistory"></div>
   `;
 
-  const setAll = (selector, checked) => document.querySelectorAll(selector).forEach(x => { x.checked = checked; });
+  const setAll = (selector, checked) => document.querySelectorAll(selector).forEach(x => { if (!x.closest('[hidden]')) x.checked = checked; });
+  const filterTargets = () => {
+    const q = document.getElementById('bulkTargetSearch').value.trim().toLowerCase();
+    let visible = 0;
+    document.querySelectorAll('.bulk-target-row').forEach(row => {
+      const show = !q || String(row.dataset.search || '').includes(q);
+      row.hidden = !show; if (show) visible++;
+    });
+    document.querySelectorAll('[data-bulk-target-group]').forEach(group => {
+      group.hidden = !group.querySelector('.bulk-target-row:not([hidden])');
+    });
+    document.getElementById('bulkTargetSearchCount').textContent = q ? `${visible} matching users` : `${targets.length} users`;
+  };
+  const filterRanges = () => {
+    const q = document.getElementById('bulkRangeSearch').value.trim().toLowerCase();
+    let visible = 0;
+    document.querySelectorAll('.bulk-range-row').forEach(row => {
+      const show = !q || String(row.dataset.search || '').includes(q);
+      row.hidden = !show; if (show) visible++;
+    });
+    document.getElementById('bulkRangeSearchCount').textContent = q ? `${visible} matching ranges` : `${ranges.length} ranges`;
+  };
+  document.getElementById('bulkTargetSearch').oninput = filterTargets;
+  document.getElementById('bulkRangeSearch').oninput = filterRanges;
+  filterTargets(); filterRanges();
+
   document.getElementById('toggleTargets').onclick = () => {
-    const boxes = [...document.querySelectorAll('.bulk-target')];
+    const boxes = [...document.querySelectorAll('.bulk-target-row:not([hidden]) .bulk-target')];
     const all = boxes.length && boxes.every(x => x.checked);
-    setAll('.bulk-target', !all);
+    boxes.forEach(x => x.checked = !all);
     document.getElementById('toggleTargets').textContent = all ? 'Select all' : 'Clear all';
   };
   document.getElementById('toggleRanges').onclick = () => {
-    const boxes = [...document.querySelectorAll('.bulk-range')];
+    const boxes = [...document.querySelectorAll('.bulk-range-row:not([hidden]) .bulk-range')];
     const all = boxes.length && boxes.every(x => x.checked);
-    setAll('.bulk-range', !all);
+    boxes.forEach(x => x.checked = !all);
     document.getElementById('toggleRanges').textContent = all ? 'Select all' : 'Clear all';
   };
 
@@ -1171,42 +1201,25 @@ async function bulkAddPage() {
     const selectedRows = [...document.querySelectorAll('.bulk-range:checked')].map(x => x.closest('.bulk-range-row'));
     const rangeIds = selectedRows.map(row => Number(row.dataset.rangeId));
     const rangeRates = {};
-    selectedRows.forEach(row => {
-      const rate = Number(row.querySelector('.bulk-range-rate').value);
-      if (!Number.isFinite(rate) || rate < 0) rangeRates[row.dataset.rangeId] = NaN;
-      else rangeRates[row.dataset.rangeId] = rate;
-    });
+    selectedRows.forEach(row => { rangeRates[row.dataset.rangeId] = Number(row.querySelector('.bulk-range-rate').value); });
     const amount = Number(document.getElementById('bulkAmount').value);
     const err = document.getElementById('bulkError'); err.classList.remove('show');
-
-    if (!targetUserIds.length || !rangeIds.length || !Number.isInteger(amount) || amount < 1) {
-      err.textContent = 'Select at least one recipient, one range, and enter a whole-number amount.';
-      err.classList.add('show'); return;
-    }
-    if (Object.values(rangeRates).some(v => !Number.isFinite(v) || v < 0)) {
-      err.textContent = 'Every selected range must have a valid rate.';
-      err.classList.add('show'); return;
-    }
-
+    if (!targetUserIds.length) { err.textContent = 'Select at least one recipient.'; err.classList.add('show'); return; }
+    if (!rangeIds.length) { err.textContent = 'Select at least one range.'; err.classList.add('show'); return; }
+    if (!Number.isFinite(amount) || amount < 1) { err.textContent = 'Enter a valid amount.'; err.classList.add('show'); return; }
     const btn = document.getElementById('bulkSubmit'); btn.disabled = true; btn.textContent = 'Allocating…';
     try {
-      const r = await fetch('/api/bulk-add', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({targetUserIds, rangeIds, amountPerRange:amount, rangeRates})
-      });
+      const r = await fetch('/api/bulk-add', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rangeIds,targetUserIds,amountPerRange:amount,rangeRates})});
       const d = await r.json();
       if (!r.ok) { err.textContent = d.error || 'Bulk allocation failed'; err.classList.add('show'); return; }
-      alert(`Done — ${d.allocated} unique numbers allocated.`);
+      alert(`Allocated ${d.allocated || 0} numbers.`);
       await bulkAddPage();
-    } finally {
-      if (document.getElementById('bulkSubmit')) {
-        document.getElementById('bulkSubmit').disabled = false;
-        document.getElementById('bulkSubmit').textContent = 'Add Numbers';
-      }
+    } catch(e) { err.textContent = e.message || 'Bulk allocation failed'; err.classList.add('show'); }
+    finally {
+      if (document.getElementById('bulkSubmit')) { document.getElementById('bulkSubmit').disabled = false; document.getElementById('bulkSubmit').textContent = 'Add Numbers'; }
     }
   };
 }
-
 // ---------- CDR page (detailed reports style) ----------
 function cdrEscape(value) { return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
 function cdrFormatDate(value) { const d=new Date(value); return Number.isNaN(d.getTime())?String(value||''):d.toLocaleString(); }
@@ -1237,11 +1250,24 @@ function cdrClientName(record, numberMap) {
   const agent=record.agentUsername || '';
   const manager=record.managerUsername || '';
   if(currentUser.role==='super_admin') {
+    // Direct Manager/Agent traffic has no Client, so use the holder snapshot
+    // captured when the OTP arrived. This must not be inferred from the
+    // number's current holder after a later reallocation.
+    if(record.holderRoleAtReceipt==='manager' && (record.holderUsernameAtReceipt || manager)) {
+      return `${record.holderUsernameAtReceipt || manager} (Manager)`;
+    }
+    if(record.holderRoleAtReceipt==='agent' && (record.holderUsernameAtReceipt || agent)) {
+      return manager
+        ? `${record.holderUsernameAtReceipt || agent} (${manager})`
+        : `${record.holderUsernameAtReceipt || agent} (Agent)`;
+    }
     // Super Admin must not see a client's username when that client belongs to an Agent.
     if(agent) return manager ? `${agent} (${manager})` : agent;
     return client || (manager ? `${manager} (Manager)` : '-') ;
   }
   if(currentUser.role==='manager') {
+    if(record.holderRoleAtReceipt==='manager') return `${record.holderUsernameAtReceipt || currentUser.username} (Manager)`;
+    if(record.holderRoleAtReceipt==='agent') return record.holderUsernameAtReceipt || agent || '-';
     // Manager sees the Agent responsible for the client; direct manager clients keep their client name.
     return agent || client || '-';
   }

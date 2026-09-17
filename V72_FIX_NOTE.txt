@@ -1,0 +1,10 @@
+V72 Bulk Search + Manager/Agent CDR Attribution
+
+- Bulk Add now has separate live search bars for users/recipients and ranges.
+- Search filters the visible checklist immediately; Select All applies to the currently visible search results.
+- Carrier CDRs now snapshot the exact number holder (Manager, Agent, or Client) at the moment the OTP is received.
+- Direct Manager-held OTPs now appear in the Manager CDR and are labeled with the Manager.
+- Direct Agent-held OTPs now appear in the Agent CDR and in the Manager scope.
+- Super Admin CDR now attributes direct Manager/Agent traffic to the holder snapshot instead of showing a blank Client.
+- Safe migration for already-imported CDRs uses an explicit holderAssignedAt timestamp only when the CDR arrived after that allocation; older pre-allocation CDRs are not reassigned.
+- Existing V71 Fast CDR Scanner, Supabase persistence, mobile UI, Group By and other fixes are preserved.
