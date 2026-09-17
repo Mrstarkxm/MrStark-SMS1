@@ -1,9 +1,1 @@
-V77 CDR + Persistence Stability Fix
-
-- CDR imports now use one persistence write per scan instead of one remote Supabase write per CDR row.
-- This prevents a 250-row CDR poll from building a long remote-write queue and delaying other users.
-- Manager/Agent/Client CDR pages can request a server-side live CDR refresh without exposing Lamix credentials.
-- Added a short server-side cooldown to prevent duplicate live-sync requests.
-- CDR provider timeout reduced to 3.5s.
-- Added Vercel Cron entrypoint every minute as an additional background safety net.
-- Health build marker is V77.
+V77 superseded by V78. See V78_FIX_NOTE.txt.

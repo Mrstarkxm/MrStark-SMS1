@@ -1,0 +1,6 @@
+V78 CDR + Dashboard Scope/Persistence Fix
+
+- Manager/Agent/Client live CDR sync now returns the freshly imported, role-scoped CDR list from the same serverless instance that performed the import. This avoids an immediate follow-up GET landing on a stale Vercel instance.
+- Agent Active Numbers dashboard scope now includes numbers where holderUserId is the Agent. Direct Agent allocations therefore count on the dashboard.
+- CDR persistence batching is protected with try/finally so a warm serverless instance cannot remain stuck in batch mode after an unexpected sync exception.
+- Existing V77 persistence, allocation snapshots, and permissions are preserved.

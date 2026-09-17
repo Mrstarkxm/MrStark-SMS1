@@ -1382,7 +1382,14 @@ async function cdrPage() {
           try {
             const sr = await fetch(currentUser.role === 'super_admin' ? '/api/carrier/auto-sync?_=' + Date.now() : '/api/cdr/live-sync?_=' + Date.now(), { method:'POST', cache:'no-store' });
             if (sr.ok) {
-              try { window.__mrstarkLastAutoScanResult = await sr.json(); } catch (_) {}
+              try {
+                const live = await sr.json();
+                window.__mrstarkLastAutoScanResult = live;
+                if (Array.isArray(live.cdr)) {
+                  records = live.cdr.slice().sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+                  applyFilters();
+                }
+              } catch (_) {}
             }
           } finally { window.__mrstarkCdrSyncInFlight = false; }
         }

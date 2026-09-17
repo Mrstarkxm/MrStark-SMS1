@@ -927,7 +927,15 @@ api['POST /api/cdr/live-sync'] = async (req, res) => {
   if (!user) return sendJson(res, 401, { error: 'Not authenticated' });
   try {
     const result = await carrier.runBackgroundSync();
-    sendJson(res, 200, result);
+    // Return the freshly imported role-scoped CDRs from this same instance.
+    // The follow-up GET can otherwise land on another Vercel instance that
+    // still has an older in-memory snapshot.
+    let cdr = [];
+    if (user.role === db.ROLES.MANAGER) cdr = db.listCdr({ scopeManagerId: user.id });
+    else if (user.role === db.ROLES.AGENT) cdr = db.listCdr({ scopeAdminId: user.id });
+    else if (user.role === db.ROLES.CLIENT) cdr = db.listCdr({ scopeClientId: user.id });
+    else cdr = db.listCdr({});
+    sendJson(res, 200, { ...result, cdr });
   } catch (e) {
     sendJson(res, e.status || 502, { error: e.message, retryAfter: e.retryAfter || null });
   }
