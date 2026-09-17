@@ -1,0 +1,1 @@
+V74 Manager/Agent Persistence Race Fix\n\nFixed concurrent Supabase state writes with optimistic locking/retry and collision-resistant numeric user IDs. Prevents Manager/Agent records from disappearing when Vercel instances save stale snapshots concurrently.\n
