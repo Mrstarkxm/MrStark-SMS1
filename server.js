@@ -136,7 +136,7 @@ api['GET /api/health'] = async (req, res) => {
   const persistence = db.getPersistenceStatus();
   sendJson(res, 200, {
     ok: true,
-    build: 'V75',
+    build: 'V77',
     vercel: Boolean(process.env.VERCEL),
     persistence
   });
@@ -910,6 +910,21 @@ api['POST /api/carrier/auto-sync'] = async (req, res) => {
   if (!user || user.role !== db.ROLES.SUPER_ADMIN) {
     return sendJson(res, 403, { error: 'Super Admin only' });
   }
+  try {
+    const result = await carrier.runBackgroundSync();
+    sendJson(res, 200, result);
+  } catch (e) {
+    sendJson(res, e.status || 502, { error: e.message, retryAfter: e.retryAfter || null });
+  }
+};
+
+// Authenticated live CDR refresh for non-carrier panels. This does not expose
+// Lamix credentials or raw carrier endpoints; it only asks the server to run
+// the protected importer so Manager/Agent/Client panels do not depend on the
+// Super Admin browser being open.
+api['POST /api/cdr/live-sync'] = async (req, res) => {
+  const user = getCurrentUser(req);
+  if (!user) return sendJson(res, 401, { error: 'Not authenticated' });
   try {
     const result = await carrier.runBackgroundSync();
     sendJson(res, 200, result);

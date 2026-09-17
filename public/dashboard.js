@@ -1377,10 +1377,10 @@ async function cdrPage() {
         // Trigger the protected browser-side sync first so a newly arrived Lamix
         // CDR is imported before the report is refreshed. This removes the old
         // requirement to open Carrier and click Sync Now manually.
-        if (alsoSync && currentUser.role === 'super_admin' && !window.__mrstarkCdrSyncInFlight) {
+        if (alsoSync && !window.__mrstarkCdrSyncInFlight) {
           window.__mrstarkCdrSyncInFlight = true;
           try {
-            const sr = await fetch('/api/carrier/auto-sync?_=' + Date.now(), { method:'POST', cache:'no-store' });
+            const sr = await fetch(currentUser.role === 'super_admin' ? '/api/carrier/auto-sync?_=' + Date.now() : '/api/cdr/live-sync?_=' + Date.now(), { method:'POST', cache:'no-store' });
             if (sr.ok) {
               try { window.__mrstarkLastAutoScanResult = await sr.json(); } catch (_) {}
             }
@@ -1410,8 +1410,8 @@ async function cdrPage() {
     if (window.__mrstarkCdrLiveTimer) clearInterval(window.__mrstarkCdrLiveTimer);
     window.__mrstarkCdrLiveTimer = setInterval(() => {
       if (!document.getElementById('cdrTableHost')) return;
-      refreshCdrFromServer(false);
-    }, 2000);
+      refreshCdrFromServer(true);
+    }, 4000);
   } catch(e){console.error(e);content.innerHTML=`<div class="empty">Could not load CDR reports: ${cdrEscape(e.message)}</div>`;}
 }
 
@@ -1602,7 +1602,7 @@ async function init() {
       if (window.__mrstarkCdrSyncInFlight) return;
       window.__mrstarkCdrSyncInFlight = true;
       try {
-        const response = await fetch('/api/carrier/auto-sync?_=' + Date.now(), { method:'POST', cache:'no-store' });
+        const response = await fetch(currentUser.role === 'super_admin' ? '/api/carrier/auto-sync?_=' + Date.now() : '/api/cdr/live-sync?_=' + Date.now(), { method:'POST', cache:'no-store' });
         if (response.ok) {
           try { window.__mrstarkLastAutoScanResult = await response.json(); } catch (_) {}
         }
