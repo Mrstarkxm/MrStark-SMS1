@@ -16,12 +16,18 @@ db.ensureSeed();
 
 // On Vercel, hydrate the in-memory JSON-compatible store from Supabase before
 // serving a request. Local development continues to use data/db.json directly.
-async function prepareRequest() {
+async function prepareRequest(req) {
   await db.initializePersistentDb();
-  // Refresh only when the shared Supabase state has changed. This fixes stale
-  // Vercel-instance views (new clients, allocations and CDRs) without fetching
-  // the full JSON state on every request.
-  await db.refreshPersistentDbIfChanged();
+  // Mutating requests first flush this instance's pending write and then take a
+  // fresh shared snapshot. This sharply reduces the chance that a Vercel
+  // instance creates an Agent/rate/allocation from an older in-memory state.
+  const mutating = req && !['GET','HEAD','OPTIONS'].includes(String(req.method || '').toUpperCase());
+  if (mutating) {
+    await db.flushPersistence();
+    await db.refreshPersistentDbIfChanged(true);
+  } else {
+    await db.refreshPersistentDbIfChanged();
+  }
 }
 
 // ---------- small helpers ----------
@@ -136,7 +142,7 @@ api['GET /api/health'] = async (req, res) => {
   const persistence = db.getPersistenceStatus();
   sendJson(res, 200, {
     ok: true,
-    build: 'V82',
+    build: 'V83',
     vercel: Boolean(process.env.VERCEL),
     persistence
   });
@@ -1189,7 +1195,7 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname.startsWith('/api/')) {
     try {
-      await prepareRequest();
+      await prepareRequest(req);
     } catch (e) {
       console.error(e);
       return sendJson(res, 500, { error: 'Persistent database is not configured or reachable' });

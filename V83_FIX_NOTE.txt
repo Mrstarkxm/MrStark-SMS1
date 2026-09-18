@@ -1,0 +1,1 @@
+V83 fixes bulk allocation returning 0, range-request approvals being reverted by stale snapshots, stable range/rate/request merging, and pre-mutation shared-state refresh. Existing state is preserved; no reset/delete migration is performed. Vercel Hobby compatible.
